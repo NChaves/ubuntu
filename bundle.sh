@@ -167,12 +167,12 @@ if [ -d .git ]; then
     git fetch origin
 
     # Checkout the latest version of setup.sh from the current branch
-    git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- setup.sh
+    git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- bundle.sh
 
     # Inform user
-    echo "✅ setup.sh has been updated to the latest version from the repo."
+    echo "✅ bundle.sh has been updated to the latest version from the repo."
 else
-    echo "⚠️ Not a git repository, skipping setup.sh update."
+    echo "⚠️ Not a git repository, skipping bundle.sh update."
 fi
 
 echo "✅ Setup complete."
