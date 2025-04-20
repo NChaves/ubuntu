@@ -188,6 +188,7 @@ if [ -d .git ]; then
     # Checkout the latest version of bundle.sh from the current branch
     git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- bundle.sh
 
+    cd ..
     # Inform user
     echo -e "$CHECK_LABEL ${GREEN}bundle.sh has been updated to the latest version from the repo.${RESET}"
 else
