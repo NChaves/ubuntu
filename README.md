@@ -15,7 +15,7 @@ You can choose to install **all components**, or **specific ones individually** 
 ## 📦 What's Included
 
 - Package installs: `nano`, `ufw`, `rsync`
-- Filebrowser setup with systemd service
+- [Filebrowser](https://filebrowser.org/) setup with systemd service
 - UFW rule for port 22 from 192.168.10.0/24
 - Optional symlink into `/home/filebrowser/` for custom directories
 
