@@ -179,4 +179,21 @@ if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
     fi
 fi
 
+# Check if we're inside a git repo
+if [ -d .git ]; then
+    echo -e ""
+    echo -e "${INFO_ICON} ${CYAN}🔄 Updating bundle.sh from the latest repo version...${RESET}"
+
+    # Fetch the latest updates from the remote
+    git fetch origin
+
+    # Checkout the latest version of bundle.sh from the current branch
+    git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- bundle.sh
+
+    # Inform user
+    echo -e "${CHECK_ICON} ${GREEN}bundle.sh has been updated to the latest version from the repo.${RESET}"
+else
+    echo -e "${WARNING_ICON} ${YELLOW}Not a git repository, skipping bundle.sh update.${RESET}"
+fi
+
 echo -e "${CHECK_ICON} ${GREEN}Setup complete.${RESET}"
