@@ -26,7 +26,7 @@ You can choose to install **all components**, or **specific ones individually** 
 ### On a clean Ubuntu server, run:
 
 ```bash
-sudo apt update && sudo apt install -y git && git clone https://github.com/yourusername/setup-scripts.git && cd setup-scripts && chmod +x setup.sh && ./setup.sh
+sudo apt update && sudo apt install -y git && git clone https://github.com/NChaves/ubuntu.git && cd setup-scripts && chmod +x setup.sh && ./setup.sh
 ```
 
 > 🔁 Replace `https://github.com/yourusername/setup-scripts.git` with the actual URL of this repository.
