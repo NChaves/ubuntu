@@ -59,6 +59,20 @@ for app in "${install_selection[@]}"; do
             echo "Setting UFW rule to allow SSH from 192.168.10.0/24..."
             sudo ufw allow from 192.168.10.0/24 to any port 22 proto tcp
             echo "UFW rule added. (Note: UFW is not enabled by default.)"
+
+            # Show current UFW status and rules
+            echo ""
+            echo "🔒 Current UFW Status and Rules:"
+            sudo ufw status verbose
+
+            # Ask if the user wants to enable UFW
+            read -p "Do you want to enable UFW now? (y/n): " enable_ufw
+            if [[ "$enable_ufw" =~ ^[Yy]$ ]]; then
+                sudo ufw enable
+                echo "UFW has been enabled."
+            else
+                echo "UFW remains disabled. You can enable it later using 'sudo ufw enable'."
+            fi
             ;;
         rsync)
             install_or_update rsync
@@ -142,38 +156,4 @@ if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
     fi
 fi
 
-# Show UFW status
-echo ""
-echo "🔒 UFW Firewall Status:"
-sudo ufw status verbose
-echo ""
-
-# Show Filebrowser info if installed
-if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
-    echo "🌐 Filebrowser is running!"
-    echo "Access it at: http://$LOCAL_IP:8080"
-    echo "Default login: admin"
-    echo "Default password: admin"
-    echo "You can change credentials using: filebrowser users update admin"
-    echo ""
-fi
-
-# Check if we're inside a git repo
-if [ -d .git ]; then
-    echo ""
-    echo "🔄 Updating setup.sh from the latest repo version..."
-
-    # Fetch the latest updates from the remote
-    git fetch origin
-
-    # Checkout the latest version of setup.sh from the current branch
-    git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- bundle.sh
-
-    # Inform user
-    echo "✅ bundle.sh has been updated to the latest version from the repo."
-else
-    echo "⚠️ Not a git repository, skipping bundle.sh update."
-fi
-
-echo "✅ Setup complete."
-
+echo "Setup complete."
