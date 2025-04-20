@@ -3,19 +3,19 @@
 set -e
 
 # Color Definitions
-CYAN='\033[0;36m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-RESET='\033[0m'
+CYAN='\033[1;36m'      # Brighter Cyan for emphasis
+GREEN='\033[1;32m'     # Brighter Green for success
+YELLOW='\033[1;33m'    # Brighter Yellow for warnings
+RED='\033[1;31m'       # Brighter Red for errors
+RESET='\033[0m'        # Reset colors for normal text
 
-# Icon Definitions
-CHECK_ICON="✔️"
-WARNING_ICON="⚠️"
-INFO_ICON="ℹ️"
-ERROR_ICON="❌"
-FOLDER_ICON="📂"
-FILEBROWSER_ICON="📄"
+# Text-based Icon Definitions
+CHECK_ICON="[✔️]"
+WARNING_ICON="[⚠️]"
+INFO_ICON="[INFO]"
+ERROR_ICON="[❌]"
+FOLDER_ICON="[📂]"
+FILEBROWSER_ICON="[📄]"
 
 # Installable options
 declare -A options=(
