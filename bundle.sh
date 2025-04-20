@@ -158,5 +158,22 @@ if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
     echo ""
 fi
 
+# Check if we're inside a git repo
+if [ -d .git ]; then
+    echo ""
+    echo "🔄 Updating setup.sh from the latest repo version..."
+
+    # Fetch the latest updates from the remote
+    git fetch origin
+
+    # Checkout the latest version of setup.sh from the current branch
+    git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- setup.sh
+
+    # Inform user
+    echo "✅ setup.sh has been updated to the latest version from the repo."
+else
+    echo "⚠️ Not a git repository, skipping setup.sh update."
+fi
+
 echo "✅ Setup complete."
 
