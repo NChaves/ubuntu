@@ -195,10 +195,4 @@ else
     echo -e "$WARNING_LABEL ${YELLOW}Not a git repository, skipping bundle.sh update.${RESET}"
 fi
 
-
-
-# Go back to the parent directory
-echo -e "$INFO_LABEL ${CYAN}Changing back to the parent directory...${RESET}"
-cd ..
-
 echo -e "$CHECK_LABEL ${GREEN}Setup complete.${RESET}"
