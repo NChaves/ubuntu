@@ -29,8 +29,6 @@ You can choose to install **all components**, or **specific ones individually** 
 sudo apt update && sudo apt install -y git && git clone https://github.com/NChaves/ubuntu-scripts.git && cd ubuntu-scripts && chmod +x bundle.sh && ./bundle.sh
 ```
 
-> 🔁 Replace `https://github.com/yourusername/setup-scripts.git` with the actual URL of this repository.
-
 ---
 
 ## 🔧 Manual Step-by-Step
@@ -65,7 +63,3 @@ This script will:
 - Offer to symlink a folder into `/home/filebrowser/`.
 
 ---
-
-## 📬 Questions?
-
-Feel free to open an issue or PR if you have suggestions or improvements!
