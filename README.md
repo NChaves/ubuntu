@@ -57,7 +57,7 @@ chmod +x bundle.sh
 
 If you've made changes to the remote repository or simply want to update your local copy of the repository and re-run the bundle script in one command, you can do the following:
 ```bash
-git pull && chmod +x bundle.sh && ./bundle.sh
+cd ubuntu-scripts && git pull && chmod +x bundle.sh && ./bundle.sh
 ```
 
 What it does:
