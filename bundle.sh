@@ -2,6 +2,21 @@
 
 set -e
 
+# Color Definitions
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+RESET='\033[0m'
+
+# Icon Definitions
+CHECK_ICON="✔️"
+WARNING_ICON="⚠️"
+INFO_ICON="ℹ️"
+ERROR_ICON="❌"
+FOLDER_ICON="📂"
+FILEBROWSER_ICON="📄"
+
 # Installable options
 declare -A options=(
     [1]="nano"
@@ -11,11 +26,11 @@ declare -A options=(
 )
 
 # Prompt user to choose
-echo "Select what to install:"
+echo -e "${CYAN}Select what to install:${RESET}"
 for i in "${!options[@]}"; do
-    echo "  $i) ${options[$i]}"
+    echo -e "  $i) ${options[$i]}"
 done
-echo "  All) Install all of the above"
+echo -e "  All) ${YELLOW}Install all of the above${RESET}"
 
 read -p "Enter option (number or 'All'): " selection
 
@@ -29,21 +44,21 @@ if [[ "$selection" =~ ^[Aa]ll$ ]]; then
 elif [[ "${options[$selection]+exists}" ]]; then
     install_selection+=("${options[$selection]}")
 else
-    echo "Invalid selection. Exiting."
+    echo -e "${ERROR_ICON} ${RED}Invalid selection. Exiting.${RESET}"
     exit 1
 fi
 
-echo "Updating package lists..."
+echo -e "${INFO_ICON} ${CYAN}Updating package lists...${RESET}"
 sudo apt update
 
 # Function to check and install/update packages
 install_or_update() {
     local pkg=$1
     if dpkg -s "$pkg" >/dev/null 2>&1; then
-        echo "$pkg is already installed. Checking for updates..."
+        echo -e "${CHECK_ICON} ${GREEN}$pkg is already installed. Checking for updates...${RESET}"
         sudo apt install --only-upgrade -y "$pkg"
     else
-        echo "Installing $pkg..."
+        echo -e "${CHECK_ICON} ${GREEN}Installing $pkg...${RESET}"
         sudo apt install -y "$pkg"
     fi
 }
@@ -56,7 +71,7 @@ for app in "${install_selection[@]}"; do
             ;;
         ufw)
             install_or_update ufw
-            echo "Setting UFW rule to allow SSH from the local network..."
+            echo -e "${INFO_ICON} ${CYAN}Setting UFW rule to allow SSH from the local network...${RESET}"
 
             # Get the local IP address
             LOCAL_IP=$(hostname -I | awk '{print $1}')
@@ -64,22 +79,22 @@ for app in "${install_selection[@]}"; do
             # Automatically determine the subnet based on the local IP address
             NETWORK_SUBNET=$(echo $LOCAL_IP | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\)\.[0-9]*/\1.0\/24/')
 
-            echo "Setting UFW rule to allow SSH from $NETWORK_SUBNET..."
+            echo -e "${CHECK_ICON} ${GREEN}Setting UFW rule to allow SSH from $NETWORK_SUBNET...${RESET}"
             sudo ufw allow from $NETWORK_SUBNET to any port 22 proto tcp
-            echo "UFW rule added. (Note: UFW is not enabled by default.)"
+            echo -e "${CHECK_ICON} ${GREEN}UFW rule added. (Note: UFW is not enabled by default.)${RESET}"
 
             # Show current UFW status and rules
-            echo ""
-            echo "🔒 Current UFW Status and Rules:"
+            echo -e ""
+            echo -e "${INFO_ICON} ${CYAN}🔒 Current UFW Status and Rules:${RESET}"
             sudo ufw status verbose
 
             # Ask if the user wants to enable UFW
             read -p "Do you want to enable UFW now? (y/n): " enable_ufw
             if [[ "$enable_ufw" =~ ^[Yy]$ ]]; then
                 sudo ufw enable
-                echo "UFW has been enabled."
+                echo -e "${CHECK_ICON} ${GREEN}UFW has been enabled.${RESET}"
             else
-                echo "UFW remains disabled. You can enable it later using 'sudo ufw enable'."
+                echo -e "${WARNING_ICON} ${YELLOW}UFW remains disabled. You can enable it later using 'sudo ufw enable'.${RESET}"
             fi
             ;;
         rsync)
@@ -88,22 +103,22 @@ for app in "${install_selection[@]}"; do
         filebrowser)
             FILEBROWSER_DIR="/home/filebrowser"
             if [ ! -d "$FILEBROWSER_DIR" ]; then
-                echo "Creating $FILEBROWSER_DIR..."
+                echo -e "${FOLDER_ICON} ${CYAN}Creating $FILEBROWSER_DIR...${RESET}"
                 sudo mkdir -p "$FILEBROWSER_DIR"
                 sudo chown "$USER":"$USER" "$FILEBROWSER_DIR"
             fi
 
             if ! command -v filebrowser >/dev/null 2>&1; then
-                echo "Installing Filebrowser..."
+                echo -e "${FILEBROWSER_ICON} ${CYAN}Installing Filebrowser...${RESET}"
                 curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
             else
-                echo "Filebrowser is already installed."
+                echo -e "${CHECK_ICON} ${GREEN}Filebrowser is already installed.${RESET}"
             fi
 
             LOCAL_IP=$(hostname -I | awk '{print $1}')
 
             FILEBROWSER_CONFIG="/etc/filebrowser.json"
-            echo "Creating Filebrowser config at $FILEBROWSER_CONFIG..."
+            echo -e "${INFO_ICON} ${CYAN}Creating Filebrowser config at $FILEBROWSER_CONFIG...${RESET}"
             sudo tee "$FILEBROWSER_CONFIG" >/dev/null <<EOF
 {
   "port": 8080,
@@ -116,7 +131,7 @@ for app in "${install_selection[@]}"; do
 EOF
 
             FILEBROWSER_SERVICE="/etc/systemd/system/filebrowser.service"
-            echo "Creating systemd service for Filebrowser..."
+            echo -e "${INFO_ICON} ${CYAN}Creating systemd service for Filebrowser...${RESET}"
             sudo tee "$FILEBROWSER_SERVICE" >/dev/null <<EOF
 [Unit]
 Description=File Browser
@@ -129,14 +144,14 @@ ExecStart=/usr/local/bin/filebrowser -c /etc/filebrowser.json
 WantedBy=multi-user.target
 EOF
 
-            echo "Enabling and starting Filebrowser service..."
+            echo -e "${INFO_ICON} ${CYAN}Enabling and starting Filebrowser service...${RESET}"
             sudo systemctl daemon-reexec
             sudo systemctl daemon-reload
             sudo systemctl enable filebrowser
             sudo systemctl start filebrowser
             ;;
         *)
-            echo "Unknown option: $app"
+            echo -e "${ERROR_ICON} ${RED}Unknown option: $app${RESET}"
             ;;
     esac
 done
@@ -152,16 +167,16 @@ if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
         if [ -e "$src" ]; then
             if [ ! -e "$dest_path" ]; then
                 ln -s "$src" "$dest_path"
-                echo "Symlink created: $dest_path -> $src"
+                echo -e "${CHECK_ICON} ${GREEN}Symlink created: $dest_path -> $src${RESET}"
             else
-                echo "Destination $dest_path already exists. Skipping symlink."
+                echo -e "${WARNING_ICON} ${YELLOW}Destination $dest_path already exists. Skipping symlink.${RESET}"
             fi
         else
-            echo "Source directory $src does not exist. Skipping symlink."
+            echo -e "${ERROR_ICON} ${RED}Source directory $src does not exist. Skipping symlink.${RESET}"
         fi
     else
-        echo "No symlink selected. Setup complete."
+        echo -e "${INFO_ICON} ${CYAN}No symlink selected. Setup complete.${RESET}"
     fi
 fi
 
-echo "Setup complete."
+echo -e "${CHECK_ICON} ${GREEN}Setup complete.${RESET}"
