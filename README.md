@@ -40,22 +40,22 @@ If you prefer to run each command individually:
 sudo apt update && sudo apt install -y git
 
 # 2. Clone this repository
-git clone https://github.com/yourusername/setup-scripts.git
+git clone https://github.com/NChaves/ubuntu-scripts.git
 
 # 3. Change into the repo directory
-cd setup-scripts
+cd ubuntu-scripts
 
-# 4. Make the setup script executable
+# 4. Make the bundle script executable
 chmod +x bundle.sh
 
-# 5. Run the setup script
+# 5. Run the bundle script
 ./bundle.sh
 ```
 
 ---
 ## 📝 Updating the Repo and Re-running the Setup Script
 
-If you've made changes to the remote repository or simply want to update your local copy of the repository and re-run the setup script in one command, you can do the following:
+If you've made changes to the remote repository or simply want to update your local copy of the repository and re-run the bundle script in one command, you can do the following:
 ```bash
 git pull && chmod +x bundle.sh && ./bundle.sh
 ```
@@ -63,8 +63,8 @@ git pull && chmod +x bundle.sh && ./bundle.sh
 What it does:
 
 - `git pull`: Fetches and merges the latest changes from the remote repository into your local copy.
-- `chmod +x bundle.sh`: Ensures that the setup.sh script is executable (in case the permissions were reset).
-- `./bundle.sh`: Executes the updated setup script to apply any new configurations or changes.
+- `chmod +x bundle.sh`: Ensures that the bundle.sh script is executable (in case the permissions were reset).
+- `./bundle.sh`: Executes the updated bundle script to apply any new configurations or changes.
 
 ---
 
