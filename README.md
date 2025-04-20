@@ -1,5 +1,5 @@
 
-# Ubuntu Server Setup Script
+# Ubuntu Server Bundle Script
 
 This repository contains a Bash script to quickly set up a clean Ubuntu server with:
 
@@ -53,7 +53,7 @@ chmod +x bundle.sh
 ```
 
 ---
-## 📝 Updating the Repo and Re-running the Setup Script
+## 📝 Updating the Repo and Re-running the Bundle Script
 
 If you've made changes to the remote repository or simply want to update your local copy of the repository and re-run the bundle script in one command, you can do the following:
 ```bash
