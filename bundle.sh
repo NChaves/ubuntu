@@ -56,8 +56,16 @@ for app in "${install_selection[@]}"; do
             ;;
         ufw)
             install_or_update ufw
-            echo "Setting UFW rule to allow SSH from 192.168.10.0/24..."
-            sudo ufw allow from 192.168.10.0/24 to any port 22 proto tcp
+            echo "Setting UFW rule to allow SSH from the local network..."
+
+            # Get the local IP address
+            LOCAL_IP=$(hostname -I | awk '{print $1}')
+
+            # Automatically determine the subnet based on the local IP address
+            NETWORK_SUBNET=$(echo $LOCAL_IP | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\)\.[0-9]*/\1.0\/24/')
+
+            echo "Setting UFW rule to allow SSH from $NETWORK_SUBNET..."
+            sudo ufw allow from $NETWORK_SUBNET to any port 22 proto tcp
             echo "UFW rule added. (Note: UFW is not enabled by default.)"
 
             # Show current UFW status and rules
