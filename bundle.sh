@@ -142,4 +142,21 @@ if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
     fi
 fi
 
-echo "Setup complete."
+# Show UFW status
+echo ""
+echo "🔒 UFW Firewall Status:"
+sudo ufw status verbose
+echo ""
+
+# Show Filebrowser info if installed
+if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
+    echo "🌐 Filebrowser is running!"
+    echo "Access it at: http://$LOCAL_IP:8080"
+    echo "Default login: admin"
+    echo "Default password: admin"
+    echo "You can change credentials using: filebrowser users update admin"
+    echo ""
+fi
+
+echo "✅ Setup complete."
+
