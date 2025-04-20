@@ -2,19 +2,18 @@
 
 set -e
 
-# Color Definitions
-CYAN='\033[1;36m'      # Brighter Cyan for emphasis
-GREEN='\033[1;32m'     # Brighter Green for success
-YELLOW='\033[1;33m'    # Brighter Yellow for warnings
-RED='\033[1;31m'       # Brighter Red for errors
-RESET='\033[0m'        # Reset colors for normal text
-
-# Text-based Labels and Decorations
-CHECK_LABEL="[SUCCESS]"
-WARNING_LABEL="[WARNING]"
+# Colors and labels
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+RESET='\033[0m'
 INFO_LABEL="[INFO]"
-ERROR_LABEL="[ERROR]"
-BORDER="-------------------------------"
+OK_LABEL="[OK]"
+WARN_LABEL="[WARN]"
+
+# Automatically detect subnet (e.g., 192.168.10.0/24)
+SUBNET=$(ip -o -f inet addr show | awk '/scope global/ {sub(/\/.*/, "", $4); split($4, a, "."); print a[1]"."a[2]"."a[3]".0/24"; exit}')
+echo -e "$INFO_LABEL ${CYAN}Detected local subnet: $SUBNET${RESET}"
 
 # Installable options
 declare -A options=(
@@ -24,17 +23,14 @@ declare -A options=(
     [4]="filebrowser"
 )
 
-# Prompt user to choose
-echo -e "${CYAN}$BORDER${RESET}"
-echo -e "$INFO_LABEL $CYAN Select what to install:${RESET}"
+echo -e "\n${CYAN}Select what to install:${RESET}"
 for i in "${!options[@]}"; do
-    echo -e "  $i) ${options[$i]}"
+    echo "  $i) ${options[$i]}"
 done
-echo -e "  All) ${YELLOW}Install all of the above${RESET}"
+echo "  All) Install all of the above"
 
 read -p "Enter option (number or 'All'): " selection
 
-# Determine what to install
 install_all=false
 install_selection=()
 
@@ -44,26 +40,25 @@ if [[ "$selection" =~ ^[Aa]ll$ ]]; then
 elif [[ "${options[$selection]+exists}" ]]; then
     install_selection+=("${options[$selection]}")
 else
-    echo -e "$ERROR_LABEL ${RED}Invalid selection. Exiting.${RESET}"
+    echo -e "$WARN_LABEL ${YELLOW}Invalid selection. Exiting.${RESET}"
     exit 1
 fi
 
 echo -e "$INFO_LABEL ${CYAN}Updating package lists...${RESET}"
 sudo apt update
 
-# Function to check and install/update packages
 install_or_update() {
     local pkg=$1
     if dpkg -s "$pkg" >/dev/null 2>&1; then
-        echo -e "$CHECK_LABEL ${GREEN}$pkg is already installed. Checking for updates...${RESET}"
+        echo -e "$INFO_LABEL ${CYAN}$pkg already installed. Checking for updates...${RESET}"
         sudo apt install --only-upgrade -y "$pkg"
     else
-        echo -e "$CHECK_LABEL ${GREEN}Installing $pkg...${RESET}"
+        echo -e "$INFO_LABEL ${CYAN}Installing $pkg...${RESET}"
         sudo apt install -y "$pkg"
     fi
 }
 
-# Install selected applications
+# Install selected apps
 for app in "${install_selection[@]}"; do
     case "$app" in
         nano)
@@ -71,30 +66,9 @@ for app in "${install_selection[@]}"; do
             ;;
         ufw)
             install_or_update ufw
-            echo -e "$INFO_LABEL ${CYAN}Setting UFW rule to allow SSH from the local network...${RESET}"
-
-            # Get the local IP address
-            LOCAL_IP=$(hostname -I | awk '{print $1}')
-
-            # Automatically determine the subnet based on the local IP address
-            NETWORK_SUBNET=$(echo $LOCAL_IP | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\)\.[0-9]*/\1.0\/24/')
-
-            echo -e "$CHECK_LABEL ${GREEN}Setting UFW rule to allow SSH from $NETWORK_SUBNET...${RESET}"
-            sudo ufw allow from $NETWORK_SUBNET to any port 22 proto tcp
-            echo -e "$CHECK_LABEL ${GREEN}UFW rule added. (Note: UFW is not enabled by default.)${RESET}"
-
-            # Show current UFW status and rules
-            echo -e "$INFO_LABEL ${CYAN}Current UFW Status and Rules:${RESET}"
-            sudo ufw status verbose
-
-            # Ask if the user wants to enable UFW
-            read -p "Do you want to enable UFW now? (y/n): " enable_ufw
-            if [[ "$enable_ufw" =~ ^[Yy]$ ]]; then
-                sudo ufw enable
-                echo -e "$CHECK_LABEL ${GREEN}UFW has been enabled.${RESET}"
-            else
-                echo -e "$WARNING_LABEL ${YELLOW}UFW remains disabled. You can enable it later using 'sudo ufw enable'.${RESET}"
-            fi
+            echo -e "$INFO_LABEL ${CYAN}Allowing SSH (port 22) from $SUBNET...${RESET}"
+            sudo ufw allow from "$SUBNET" to any port 22 proto tcp
+            echo -e "$OK_LABEL ${GREEN}UFW rule for SSH added (not enabled).${RESET}"
             ;;
         rsync)
             install_or_update rsync
@@ -111,13 +85,12 @@ for app in "${install_selection[@]}"; do
                 echo -e "$INFO_LABEL ${CYAN}Installing Filebrowser...${RESET}"
                 curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
             else
-                echo -e "$CHECK_LABEL ${GREEN}Filebrowser is already installed.${RESET}"
+                echo -e "$INFO_LABEL ${CYAN}Filebrowser already installed.${RESET}"
             fi
 
             LOCAL_IP=$(hostname -I | awk '{print $1}')
-
             FILEBROWSER_CONFIG="/etc/filebrowser.json"
-            echo -e "$INFO_LABEL ${CYAN}Creating Filebrowser config at $FILEBROWSER_CONFIG...${RESET}"
+            echo -e "$INFO_LABEL ${CYAN}Writing config to $FILEBROWSER_CONFIG...${RESET}"
             sudo tee "$FILEBROWSER_CONFIG" >/dev/null <<EOF
 {
   "port": 8080,
@@ -130,7 +103,7 @@ for app in "${install_selection[@]}"; do
 EOF
 
             FILEBROWSER_SERVICE="/etc/systemd/system/filebrowser.service"
-            echo -e "$INFO_LABEL ${CYAN}Creating systemd service for Filebrowser...${RESET}"
+            echo -e "$INFO_LABEL ${CYAN}Creating Filebrowser service...${RESET}"
             sudo tee "$FILEBROWSER_SERVICE" >/dev/null <<EOF
 [Unit]
 Description=File Browser
@@ -143,19 +116,26 @@ ExecStart=/usr/local/bin/filebrowser -c /etc/filebrowser.json
 WantedBy=multi-user.target
 EOF
 
-            echo -e "$INFO_LABEL ${CYAN}Enabling and starting Filebrowser service...${RESET}"
+            echo -e "$INFO_LABEL ${CYAN}Starting Filebrowser service...${RESET}"
             sudo systemctl daemon-reexec
             sudo systemctl daemon-reload
             sudo systemctl enable filebrowser
             sudo systemctl start filebrowser
             ;;
         *)
-            echo -e "$ERROR_LABEL ${RED}Unknown option: $app${RESET}"
+            echo -e "$WARN_LABEL ${YELLOW}Unknown option: $app${RESET}"
             ;;
     esac
 done
 
-# Offer symlink option if filebrowser was installed
+# Add UFW rule for Filebrowser if both installed
+if dpkg -s "ufw" >/dev/null 2>&1 && command -v filebrowser >/dev/null 2>&1; then
+    echo -e "$INFO_LABEL ${CYAN}Adding UFW rule to allow port 8080 from $SUBNET...${RESET}"
+    sudo ufw allow from "$SUBNET" to any port 8080 proto tcp
+    echo -e "$OK_LABEL ${GREEN}UFW rule for Filebrowser added.${RESET}"
+fi
+
+# Symlink option for filebrowser
 if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
     read -p "Do you want to symlink a folder into /home/filebrowser/? (y/n): " want_symlink
     if [[ "$want_symlink" =~ ^[Yy]$ ]]; then
@@ -166,33 +146,46 @@ if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
         if [ -e "$src" ]; then
             if [ ! -e "$dest_path" ]; then
                 ln -s "$src" "$dest_path"
-                echo -e "$CHECK_LABEL ${GREEN}Symlink created: $dest_path -> $src${RESET}"
+                echo -e "$OK_LABEL ${GREEN}Symlink created: $dest_path -> $src${RESET}"
             else
-                echo -e "$WARNING_LABEL ${YELLOW}Destination $dest_path already exists. Skipping symlink.${RESET}"
+                echo -e "$WARN_LABEL ${YELLOW}Destination already exists. Skipping symlink.${RESET}"
             fi
         else
-            echo -e "$ERROR_LABEL ${RED}Source directory $src does not exist. Skipping symlink.${RESET}"
+            echo -e "$WARN_LABEL ${YELLOW}Source does not exist. Skipping symlink.${RESET}"
         fi
     else
-        echo -e "$INFO_LABEL ${CYAN}No symlink selected. Setup complete.${RESET}"
+        echo -e "$INFO_LABEL ${CYAN}No symlink created.${RESET}"
     fi
 fi
 
-# Check if we're inside a git repo
-if [ -d .git ]; then
-    echo -e "$INFO_LABEL ${CYAN}Updating bundle.sh from the latest repo version...${RESET}"
+# Show UFW status
+if command -v ufw >/dev/null 2>&1; then
+    echo -e "\n$INFO_LABEL ${CYAN}Current UFW status:${RESET}"
+    sudo ufw status verbose
 
-    # Fetch the latest updates from the remote
-    git fetch origin
-
-    # Checkout the latest version of bundle.sh from the current branch
-    git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- bundle.sh
-
-    cd ..
-    # Inform user
-    echo -e "$CHECK_LABEL ${GREEN}bundle.sh has been updated to the latest version from the repo.${RESET}"
-else
-    echo -e "$WARNING_LABEL ${YELLOW}Not a git repository, skipping bundle.sh update.${RESET}"
+    read -p "Do you want to enable UFW now? (y/n): " enable_ufw
+    if [[ "$enable_ufw" =~ ^[Yy]$ ]]; then
+        sudo ufw enable
+        echo -e "$OK_LABEL ${GREEN}UFW enabled.${RESET}"
+    else
+        echo -e "$INFO_LABEL ${CYAN}UFW not enabled.${RESET}"
+    fi
 fi
 
-echo -e "$CHECK_LABEL ${GREEN}Setup complete.${RESET}"
+# Notify about Filebrowser URL
+if command -v filebrowser >/dev/null 2>&1; then
+    echo -e "\n$INFO_LABEL ${CYAN}Filebrowser is running at: http://$LOCAL_IP:8080${RESET}"
+    echo -e "$INFO_LABEL ${CYAN}Login: admin / admin${RESET}"
+fi
+
+# Git repo update (if inside git)
+if [ -d .git ]; then
+    echo -e "\n$INFO_LABEL ${CYAN}Updating bundle.sh from the latest repo version...${RESET}"
+    git fetch origin
+    git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- bundle.sh
+    echo -e "$OK_LABEL ${GREEN}bundle.sh updated from Git repo.${RESET}"
+else
+    echo -e "$WARN_LABEL ${YELLOW}Not a Git repo. Skipping auto-update.${RESET}"
+fi
+
+echo -e "\n$OK_LABEL ${GREEN}Setup complete.${RESET}"
