@@ -46,11 +46,25 @@ git clone https://github.com/yourusername/setup-scripts.git
 cd setup-scripts
 
 # 4. Make the setup script executable
-chmod +x setup.sh
+chmod +x bundle.sh
 
 # 5. Run the setup script
-./setup.sh
+./bundle.sh
 ```
+
+---
+## 📝 Updating the Repo and Re-running the Setup Script
+
+If you've made changes to the remote repository or simply want to update your local copy of the repository and re-run the setup script in one command, you can do the following:
+```bash
+git pull && chmod +x bundle.sh && ./bundle.sh
+```
+
+What it does:
+
+- `git pull`: Fetches and merges the latest changes from the remote repository into your local copy.
+- `chmod +x bundle.sh`: Ensures that the setup.sh script is executable (in case the permissions were reset).
+- `./bundle.sh`: Executes the updated setup script to apply any new configurations or changes.
 
 ---
 
