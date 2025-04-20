@@ -2,6 +2,37 @@
 
 set -e
 
+# Installable options
+declare -A options=(
+    [1]="nano"
+    [2]="ufw"
+    [3]="rsync"
+    [4]="filebrowser"
+)
+
+# Prompt user to choose
+echo "Select what to install:"
+for i in "${!options[@]}"; do
+    echo "  $i) ${options[$i]}"
+done
+echo "  All) Install all of the above"
+
+read -p "Enter option (number or 'All'): " selection
+
+# Determine what to install
+install_all=false
+install_selection=()
+
+if [[ "$selection" =~ ^[Aa]ll$ ]]; then
+    install_all=true
+    install_selection=("${options[@]}")
+elif [[ "${options[$selection]+exists}" ]]; then
+    install_selection+=("${options[$selection]}")
+else
+    echo "Invalid selection. Exiting."
+    exit 1
+fi
+
 echo "Updating package lists..."
 sudo apt update
 
@@ -17,39 +48,41 @@ install_or_update() {
     fi
 }
 
-# Install nano, ufw, rsync
-install_or_update nano
-install_or_update ufw
-install_or_update rsync
+# Install selected applications
+for app in "${install_selection[@]}"; do
+    case "$app" in
+        nano)
+            install_or_update nano
+            ;;
+        ufw)
+            install_or_update ufw
+            echo "Setting UFW rule to allow SSH from 192.168.10.0/24..."
+            sudo ufw allow from 192.168.10.0/24 to any port 22 proto tcp
+            echo "UFW rule added. (Note: UFW is not enabled by default.)"
+            ;;
+        rsync)
+            install_or_update rsync
+            ;;
+        filebrowser)
+            FILEBROWSER_DIR="/home/filebrowser"
+            if [ ! -d "$FILEBROWSER_DIR" ]; then
+                echo "Creating $FILEBROWSER_DIR..."
+                sudo mkdir -p "$FILEBROWSER_DIR"
+                sudo chown "$USER":"$USER" "$FILEBROWSER_DIR"
+            fi
 
-# Configure ufw
-echo "Setting UFW rule to allow SSH from 192.168.10.0/24..."
-sudo ufw allow from 192.168.10.0/24 to any port 22 proto tcp
-echo "UFW rule added. (Note: UFW is not enabled by default.)"
+            if ! command -v filebrowser >/dev/null 2>&1; then
+                echo "Installing Filebrowser..."
+                curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
+            else
+                echo "Filebrowser is already installed."
+            fi
 
-# Setup Filebrowser
-FILEBROWSER_DIR="/home/filebrowser"
-if [ ! -d "$FILEBROWSER_DIR" ]; then
-    echo "Creating $FILEBROWSER_DIR..."
-    sudo mkdir -p "$FILEBROWSER_DIR"
-    sudo chown "$USER":"$USER" "$FILEBROWSER_DIR"
-fi
+            LOCAL_IP=$(hostname -I | awk '{print $1}')
 
-# Check if filebrowser is installed
-if ! command -v filebrowser >/dev/null 2>&1; then
-    echo "Installing Filebrowser..."
-    curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
-else
-    echo "Filebrowser is already installed."
-fi
-
-# Get local IP address
-LOCAL_IP=$(hostname -I | awk '{print $1}')
-
-# Create filebrowser config
-FILEBROWSER_CONFIG="/etc/filebrowser.json"
-echo "Creating Filebrowser config at $FILEBROWSER_CONFIG..."
-sudo tee "$FILEBROWSER_CONFIG" >/dev/null <<EOF
+            FILEBROWSER_CONFIG="/etc/filebrowser.json"
+            echo "Creating Filebrowser config at $FILEBROWSER_CONFIG..."
+            sudo tee "$FILEBROWSER_CONFIG" >/dev/null <<EOF
 {
   "port": 8080,
   "baseURL": "",
@@ -60,10 +93,9 @@ sudo tee "$FILEBROWSER_CONFIG" >/dev/null <<EOF
 }
 EOF
 
-# Create systemd service
-FILEBROWSER_SERVICE="/etc/systemd/system/filebrowser.service"
-echo "Creating systemd service for Filebrowser..."
-sudo tee "$FILEBROWSER_SERVICE" >/dev/null <<EOF
+            FILEBROWSER_SERVICE="/etc/systemd/system/filebrowser.service"
+            echo "Creating systemd service for Filebrowser..."
+            sudo tee "$FILEBROWSER_SERVICE" >/dev/null <<EOF
 [Unit]
 Description=File Browser
 After=network.target
@@ -75,32 +107,39 @@ ExecStart=/usr/local/bin/filebrowser -c /etc/filebrowser.json
 WantedBy=multi-user.target
 EOF
 
-# Enable and start the service
-echo "Enabling and starting Filebrowser service..."
-sudo systemctl daemon-reexec
-sudo systemctl daemon-reload
-sudo systemctl enable filebrowser
-sudo systemctl start filebrowser
+            echo "Enabling and starting Filebrowser service..."
+            sudo systemctl daemon-reexec
+            sudo systemctl daemon-reload
+            sudo systemctl enable filebrowser
+            sudo systemctl start filebrowser
+            ;;
+        *)
+            echo "Unknown option: $app"
+            ;;
+    esac
+done
 
-# Offer to symlink a folder
-read -p "Do you want to symlink a folder into /home/filebrowser/? (y/n): " answer
-if [[ "$answer" =~ ^[Yy]$ ]]; then
-    read -p "Enter the source directory to symlink: " src
-    read -p "Enter the name for the destination folder (relative to /home/filebrowser/): " dest
-    dest_path="$FILEBROWSER_DIR/$dest"
+# Offer symlink option if filebrowser was installed
+if [[ " ${install_selection[@]} " =~ " filebrowser " ]]; then
+    read -p "Do you want to symlink a folder into /home/filebrowser/? (y/n): " want_symlink
+    if [[ "$want_symlink" =~ ^[Yy]$ ]]; then
+        read -p "Enter the source directory to symlink: " src
+        read -p "Enter the name for the destination folder (relative to /home/filebrowser/): " dest
+        dest_path="/home/filebrowser/$dest"
 
-    if [ -e "$src" ]; then
-        if [ ! -e "$dest_path" ]; then
-            ln -s "$src" "$dest_path"
-            echo "Symlink created: $dest_path -> $src"
+        if [ -e "$src" ]; then
+            if [ ! -e "$dest_path" ]; then
+                ln -s "$src" "$dest_path"
+                echo "Symlink created: $dest_path -> $src"
+            else
+                echo "Destination $dest_path already exists. Skipping symlink."
+            fi
         else
-            echo "Destination $dest_path already exists. Skipping symlink."
+            echo "Source directory $src does not exist. Skipping symlink."
         fi
     else
-        echo "Source directory $src does not exist. Skipping symlink."
+        echo "No symlink selected. Setup complete."
     fi
-else
-    echo "No symlink created."
 fi
 
-echo "All tasks completed."
+echo "Setup complete."
