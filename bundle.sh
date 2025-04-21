@@ -175,7 +175,7 @@ fi
 # Notify about Filebrowser URL
 if command -v filebrowser >/dev/null 2>&1; then
     echo -e "\n$INFO_LABEL ${CYAN}Filebrowser is running at: http://$LOCAL_IP:8080${RESET}"
-    echo -e "$INFO_LABEL ${CYAN}Login: admin / admin${RESET}"
+    echo -e "$INFO_LABEL ${CYAN}Default Login: admin / admin${RESET}"
 fi
 
 # Git repo update (if inside git)
