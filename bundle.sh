@@ -192,4 +192,19 @@ if command -v ufw >/dev/null 2>&1; then
 fi
 
 # Notify about Filebrowser URL
-if command
+if command -v filebrowser >/dev/null 2>&1; then
+    echo -e "\n$INFO_LABEL ${CYAN}Filebrowser is running at: http://$LOCAL_IP:8080${RESET}"
+    echo -e "$INFO_LABEL ${CYAN}Default Login: admin / admin${RESET}"
+fi
+
+# Git repo update (if inside git)
+if [ -d .git ]; then
+    echo -e "\n$INFO_LABEL ${CYAN}Updating bundle.sh from the latest repo version...${RESET}"
+    git fetch origin
+    git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- bundle.sh
+    echo -e "$OK_LABEL ${GREEN}bundle.sh updated from Git repo.${RESET}"
+else
+    echo -e "$WARN_LABEL ${YELLOW}Not a Git repo. Skipping auto-update.${RESET}"
+fi
+
+echo -e "\n$OK_LABEL ${GREEN}Setup complete.${RESET}"
