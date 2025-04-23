@@ -21,6 +21,7 @@ declare -A options=(
     [2]="ufw"
     [3]="rsync"
     [4]="filebrowser"
+    [5]="ssh-key"
 )
 
 echo -e "\n${CYAN}Select what to install:${RESET}"
@@ -122,6 +123,24 @@ EOF
             sudo systemctl enable filebrowser
             sudo systemctl start filebrowser
             ;;
+        ssh-key)
+            read -p "Enter your GitHub email address: " user_email
+            ssh_key_path="$HOME/.ssh/id_ed25519"
+
+            if [ -f "$ssh_key_path" ]; then
+                echo -e "$WARN_LABEL ${YELLOW}SSH key already exists at $ssh_key_path. Skipping creation.${RESET}"
+            else
+                echo -e "$INFO_LABEL ${CYAN}Creating SSH key...${RESET}"
+                ssh-keygen -t ed25519 -C "$user_email" -f "$ssh_key_path" -N ""
+                eval "$(ssh-agent -s)"
+                ssh-add "$ssh_key_path"
+                echo -e "\n✅ SSH key created and added to the SSH agent."
+                echo -e "📋 Copy the following public key into your GitHub SSH settings:"
+                echo -e "--------------------------------------------------------------"
+                cat "$ssh_key_path.pub"
+                echo -e "--------------------------------------------------------------"
+            fi
+            ;;
         *)
             echo -e "$WARN_LABEL ${YELLOW}Unknown option: $app${RESET}"
             ;;
@@ -173,37 +192,4 @@ if command -v ufw >/dev/null 2>&1; then
 fi
 
 # Notify about Filebrowser URL
-if command -v filebrowser >/dev/null 2>&1; then
-    echo -e "\n$INFO_LABEL ${CYAN}Filebrowser is running at: http://$LOCAL_IP:8080${RESET}"
-    echo -e "$INFO_LABEL ${CYAN}Default Login: admin / admin${RESET}"
-fi
-
-# Prompt user for GitHub email
-read -p "Enter your GitHub email address: " user_email
-
-# Step 1: Generate the SSH key with default name and settings (no passphrase)
-ssh-keygen -t ed25519 -C "$user_email" -f ~/.ssh/id_ed25519 -N ""
-
-# Step 2: Ensure the SSH agent is running and add the key
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
-
-# Step 3: Output the public key to copy into GitHub
-echo ""
-echo "✅ SSH key created and added to the SSH agent."
-echo "📋 Copy the following public key into your GitHub SSH settings:"
-echo "--------------------------------------------------------------"
-cat ~/.ssh/id_ed25519.pub
-echo "--------------------------------------------------------------"
-
-# Git repo update (if inside git)
-if [ -d .git ]; then
-    echo -e "\n$INFO_LABEL ${CYAN}Updating bundle.sh from the latest repo version...${RESET}"
-    git fetch origin
-    git checkout origin/$(git rev-parse --abbrev-ref HEAD) -- bundle.sh
-    echo -e "$OK_LABEL ${GREEN}bundle.sh updated from Git repo.${RESET}"
-else
-    echo -e "$WARN_LABEL ${YELLOW}Not a Git repo. Skipping auto-update.${RESET}"
-fi
-
-echo -e "\n$OK_LABEL ${GREEN}Setup complete.${RESET}"
+if command
